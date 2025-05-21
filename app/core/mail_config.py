@@ -1,25 +1,54 @@
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
-from pydantic import EmailStr, SecretStr
-from os import getenv
+from pydantic import EmailStr, SecretStr, BaseModel
+from pydantic_settings import BaseSettings
+from functools import lru_cache
+
+
+# Load email-related environment variables
+class MailSettings(BaseSettings):
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: SecretStr
+    MAIL_FROM: EmailStr
+    MAIL_PORT: int = 587
+    MAIL_SERVER: str
+    MAIL_STARTTLS: bool = True
+    MAIL_SSL_TLS: bool = False
+    USE_CREDENTIALS: bool = True
+    VALIDATE_CERTS: bool = True
+
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
+
+
+@lru_cache()
+def get_mail_settings() -> MailSettings:
+    return MailSettings() # type: ignore
+
+
+# Use the config to build FastMail connection
+mail_settings = get_mail_settings()
 
 conf = ConnectionConfig(
-    MAIL_USERNAME=getenv("MAIL_USERNAME") or "",
-    MAIL_PASSWORD=SecretStr(getenv("MAIL_PASSWORD") or ""),
-    MAIL_FROM=getenv("MAIL_FROM") or "no-reply@example.com",
-    MAIL_PORT=int(getenv("MAIL_PORT", 587)),
-    MAIL_SERVER=getenv("MAIL_SERVER") or "smtp.example.com",
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
+    MAIL_USERNAME=mail_settings.MAIL_USERNAME,
+    MAIL_PASSWORD=mail_settings.MAIL_PASSWORD,
+    MAIL_FROM=mail_settings.MAIL_FROM,
+    MAIL_PORT=mail_settings.MAIL_PORT,
+    MAIL_SERVER=mail_settings.MAIL_SERVER,
+    MAIL_STARTTLS=mail_settings.MAIL_STARTTLS,
+    MAIL_SSL_TLS=mail_settings.MAIL_SSL_TLS,
+    USE_CREDENTIALS=mail_settings.USE_CREDENTIALS,
+    VALIDATE_CERTS=mail_settings.VALIDATE_CERTS
 )
 
+
+# Send verification email
 async def send_verification_email(email: EmailStr, code: str):
     message = MessageSchema(
         subject="Your Verification Code",
         recipients=[email],
         body=f"Your verification code is: {code}",
-        subtype=MessageType.plain 
+        subtype=MessageType.plain
     )
 
     fm = FastMail(conf)

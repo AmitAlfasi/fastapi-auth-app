@@ -7,3 +7,7 @@ class ResendVerificationCodeRequest(BaseModel):
 class VerifyEmailRequest(BaseModel):
     email: EmailStr
     code: Annotated[str, Field(min_length=6, max_length=6, examples=["123456"])]
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str

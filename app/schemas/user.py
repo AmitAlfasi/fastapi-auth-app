@@ -10,6 +10,11 @@ StrongPassword = Annotated[str, Field(
     )
 )]
 
+FullName = Annotated[str, Field(
+    max_length=50,
+    description="Full name must contain only alphabetic characters and be no longer than 50 characters."
+)]
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: StrongPassword
@@ -24,4 +29,12 @@ class UserCreate(BaseModel):
             raise ValueError("Password must contain at least one uppercase letter.")
         if not re.search(r"\d", value):
             raise ValueError("Password must contain at least one number.")
+        return value
+    
+    
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value: str) -> str:
+        if not value.replace(" ", "").isalpha():
+            raise ValueError("Full name must contain only alphabetic characters.")
         return value

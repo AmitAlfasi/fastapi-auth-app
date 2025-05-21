@@ -10,7 +10,12 @@ from app.schemas.auth import ResendVerificationCodeRequest
 from app.schemas.auth import VerifyEmailRequest
 from datetime import datetime, timezone
 from app.models.verification_code import VerificationCode
-
+from app.models.refresh_token import RefreshToken
+from app.core.security import verify_password, create_access_token, create_refresh_token
+from app.config import get_settings
+from app.schemas.auth import LoginRequest
+from fastapi import Response
+from hashlib import sha256
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -107,3 +112,49 @@ def verify_email(payload: VerifyEmailRequest, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Email verified successfully"}
+
+
+
+@router.post("/login")
+def login(data: LoginRequest, response: Response, db: Session = Depends(get_db)):
+    settings = get_settings()
+
+    user = db.query(User).filter(User.email == data.email).first()
+
+    if not user or not verify_password(data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified"
+        )
+
+    # Generate tokens
+    access_token = create_access_token(data={"sub": str(user.id)})
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    # Hash the refresh token before storing
+    hashed_token = sha256(refresh_token.encode()).hexdigest()
+
+    # delete old refresh tokens (enforce single-session)
+    # db.query(RefreshToken).filter(RefreshToken.user_id == user.id).delete()
+
+    # Store the new hashed refresh token
+    db.add(RefreshToken(token=hashed_token, user_id=user.id))
+    db.commit()
+
+    # Set the original (unhashed) token in an HTTP-only cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=False,  # TODO Set to True ?
+        samesite="strict",
+        max_age=60 * 60 * 24 * settings.REFRESH_TOKEN_EXPIRE_DAYS
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
