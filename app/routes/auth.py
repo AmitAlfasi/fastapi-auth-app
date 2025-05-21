@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
 from sqlalchemy.orm import Session
 from app.schemas.user import UserCreate
 from app.models.user import User
@@ -6,16 +6,16 @@ from app.database import get_db
 from app.core.security import hash_password
 from app.utils.email_verification import create_and_store_verification_code
 from app.core.mail_config import send_verification_email
-from app.schemas.auth import ResendVerificationCodeRequest
-from app.schemas.auth import VerifyEmailRequest
+from app.schemas.auth import ResendVerificationCodeRequest, VerifyEmailRequest, LoginRequest
 from datetime import datetime, timezone
 from app.models.verification_code import VerificationCode
 from app.models.refresh_token import RefreshToken
 from app.core.security import verify_password, create_access_token, create_refresh_token
 from app.config import get_settings
-from app.schemas.auth import LoginRequest
-from fastapi import Response
 from hashlib import sha256
+from jose import jwt, JWTError
+from typing import Optional
+from fastapi import Request
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -141,7 +141,7 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
     hashed_token = sha256(refresh_token.encode()).hexdigest()
 
     # delete old refresh tokens (enforce single-session)
-    # db.query(RefreshToken).filter(RefreshToken.user_id == user.id).delete()
+    ## db.query(RefreshToken).filter(RefreshToken.user_id == user.id).delete()
 
     # Store the new hashed refresh token
     db.add(RefreshToken(token=hashed_token, user_id=user.id))
@@ -158,3 +158,87 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/refresh")
+def refresh_token(
+    response: Response,
+    refresh_token: str = Cookie(None),
+    db: Session = Depends(get_db)
+):
+    settings = get_settings()
+
+    if refresh_token is None:
+        raise HTTPException(status_code=401, detail="Missing refresh token")
+
+    # Decode and validate the JWT refresh token
+    try:
+        payload = jwt.decode(
+            refresh_token,
+            settings.JWT_SECRET,
+            algorithms=[settings.ALGORITHM]
+        )
+        user_id: Optional[str] = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    # Hash the token and look it up in DB
+    hashed_token = sha256(refresh_token.encode()).hexdigest()
+
+    token_in_db = db.query(RefreshToken).filter(
+        RefreshToken.token == hashed_token,
+        RefreshToken.user_id == int(user_id)
+    ).first()
+
+    if not token_in_db:
+        raise HTTPException(status_code=401, detail="Refresh token not recognized")
+
+    # Remove the old refresh token from DB (rotation)
+    db.delete(token_in_db)
+    db.commit()
+
+    # Issue new tokens
+    new_access_token = create_access_token(data={"sub": user_id})
+    new_refresh_token = create_refresh_token(data={"sub": user_id})
+    hashed_new_refresh = sha256(new_refresh_token.encode()).hexdigest()
+
+    db.add(RefreshToken(token=hashed_new_refresh, user_id=int(user_id)))
+    db.commit()
+
+    # Set new refresh token in HTTP-only cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=False,  # TODO Set to True in production
+        samesite="strict",
+        max_age=60 * 60 * 24 * settings.REFRESH_TOKEN_EXPIRE_DAYS
+    )
+
+    return {"access_token": new_access_token, "token_type": "bearer"}
+
+
+
+@router.post("/logout")
+def logout(
+    # request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    refresh_token: str = Cookie(None)
+):
+    if refresh_token is None:
+        raise HTTPException(status_code=400, detail="No refresh token found")
+
+    # Hash the token to find it  DB
+    hashed_token = sha256(refresh_token.encode()).hexdigest()
+
+    # Delete the refresh token from the DB
+    db.query(RefreshToken).filter(RefreshToken.token == hashed_token).delete()
+    db.commit()
+
+    # Clear the cookie
+    response.delete_cookie("refresh_token")
+
+    return {"message": "Logged out successfully"}
