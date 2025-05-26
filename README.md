@@ -34,6 +34,8 @@ A robust authentication system built with FastAPI, featuring JWT-based authentic
     - [Features](#features)
     - [Run the frontend](#run-the-frontend)
   - [🙌 Acknowledgments](#-acknowledgments)
+  - [📸 Screenshots](#-screenshots)
+  - [🛠️ Challenges \& Learnings](#️-challenges--learnings)
 
 ---
 
@@ -87,7 +89,7 @@ cd fastapi-auth-app
 ```bash
 # Windows
 python -m venv venv
-.env\Scriptsctivate
+.\venv\Scripts\activate
 
 # Linux/macOS
 python -m venv venv
@@ -101,23 +103,21 @@ pip install -r backend/requirements.txt
 
 ### 4. Create a `.env` File in the Project Root
 ```env
-# JWT Settings
+# JWT settings
 JWT_SECRET=your-secret-key
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 
-# Database (MySQL)
-DATABASE_URL=mysql+mysqlconnector://user:password@localhost:3306/database_name
+# Database
+DATABASE_URL=mysql+mysqlconnector://user:password@localhost:3306/fastapi_auth
 
-# Email Settings
-SMTP_TLS=True
-SMTP_PORT=587
-SMTP_HOST=smtp.gmail.com
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-EMAILS_FROM_EMAIL=your-email@gmail.com
-EMAILS_FROM_NAME=Your Name
+# Mailtrap / SMTP settings
+MAIL_USERNAME=your-mailtrap-username
+MAIL_PASSWORD=your-mailtrap-password
+MAIL_FROM=no-reply@fastapiauth.com
+MAIL_PORT=587
+MAIL_SERVER=sandbox.smtp.mailtrap.io
 ```
 
 ### 5. Create the MySQL Database
@@ -152,7 +152,6 @@ Access the API at:
 
 ### Protected Routes
 - `GET /user/home` – Requires `Authorization: Bearer <token>`
-- `GET /user/me`
 
 ---
 
@@ -205,17 +204,6 @@ python backend/scripts/run_tests.py -p backend/tests/test_login.py
 │   └── script.js
 ```
 
-```
-fastapi-auth-app/
-├── backend/
-├── frontend/
-│   ├── index.html
-│   ├── register.html
-│   ├── verify.html
-│   ├── dashboard.html
-│   ├── styles.css
-```
-
 ---
 
 ## 🔐 Security Features
@@ -231,7 +219,7 @@ fastapi-auth-app/
 - Input validation using Pydantic  
 
 ### 🔜 Planned
-- Rate limiting  
+- Rate limiting
 
 ---
 
@@ -261,3 +249,20 @@ Then open [http://localhost:5500/index.html](http://localhost:5500/index.html)
 - [FastAPI Documentation](https://fastapi.tiangolo.com)
 - [SQLAlchemy Docs](https://docs.sqlalchemy.org)
 - [Pydantic Docs](https://docs.pydantic.dev)
+
+
+## 📸 Screenshots
+
+| Page      | Preview                               |
+| --------- | ------------------------------------- |
+| Login     | ![Login](screenshots/login.png)       |
+| Register  | ![Register](screenshots/register.png) |
+| Verify    | ![Verify](screenshots/verify.png)     |
+| Dashboard | ![Dashboard](screenshots/home.png)    |
+
+## 🛠️ Challenges & Learnings
+
+- ⚠️ Handling CORS errors between frontend and backend — resolved by configuring `CORSMiddleware` in FastAPI.
+- 🔐 Password validation — added custom Pydantic validators and mirrored rules in the frontend using JavaScript.
+- 📩 Email verification — implemented both backend logic and user-friendly flows in the frontend.
+- 🎨 Frontend polish — added live validation, error display, and responsive styling to match real-world standards.
