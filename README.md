@@ -20,7 +20,7 @@ A robust authentication system built with FastAPI, featuring JWT-based authentic
     - [2. Create and Activate a Virtual Environment](#2-create-and-activate-a-virtual-environment)
     - [3. Install Backend Dependencies](#3-install-backend-dependencies)
     - [4. Create a `.env` File in the Project Root](#4-create-a-env-file-in-the-project-root)
-    - [5. Create the MySQL Database](#5-create-the-mysql-database)
+    - [5. Database Setup](#5-database-setup)
   - [▶️ Running the Application](#️-running-the-application)
   - [🔑 Key Endpoints](#-key-endpoints)
     - [Authentication](#authentication)
@@ -29,7 +29,11 @@ A robust authentication system built with FastAPI, featuring JWT-based authentic
   - [📁 Project Structure](#-project-structure)
   - [🔐 Security Features](#-security-features)
     - [✅ Implemented](#-implemented)
-    - [🔜 Planned](#-planned)
+    - [🔜 Planned Features](#-planned-features)
+      - [Security Enhancements](#security-enhancements)
+      - [User Management](#user-management)
+      - [Infrastructure \& Monitoring](#infrastructure--monitoring)
+      - [UI/UX Improvements](#uiux-improvements)
   - [🌐 Frontend](#-frontend)
     - [Features](#features)
     - [Run the frontend](#run-the-frontend)
@@ -44,7 +48,7 @@ A robust authentication system built with FastAPI, featuring JWT-based authentic
 - 🔐 Secure user authentication with JWT tokens  
 - 📧 Email verification system  
 - 🔄 Access and refresh token flow  
-- 🛡️ Protected routes with role-based access  
+- 🛡️ Protected routes 
 - 🔒 Secure password handling  
 - 📝 Comprehensive test suite  
 - 🚀 FastAPI with async support  
@@ -120,10 +124,19 @@ MAIL_PORT=587
 MAIL_SERVER=sandbox.smtp.mailtrap.io
 ```
 
-### 5. Create the MySQL Database
+### 5. Database Setup
+
+1. Install MySQL connector if not already installed:
+```bash
+pip install mysql-connector-python
+```
+
+2. Create the MySQL database (only the database needs to be created manually):
 ```sql
 CREATE DATABASE fastapi_auth;
 ```
+
+3. The application will automatically create all necessary tables (users, refresh_tokens, verification_codes) when it starts. No additional database setup is required.
 
 ---
 
@@ -227,7 +240,7 @@ python backend/scripts/run_tests.py -p backend/tests/test_login.py
 -  Add CSRF protection (if applicable)
 
 #### User Management
-- “Remember Me” checkbox in login
+- "Remember Me" checkbox in login
 - User profile page
 - Edit user profile information
 - Track user actions for history/logging
