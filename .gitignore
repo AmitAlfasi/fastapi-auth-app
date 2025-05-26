@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 test.db
 .env
+
+# Script-specific files
+scripts/__pycache__/
+scripts/*.pyc
