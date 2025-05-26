@@ -30,7 +30,7 @@ A robust authentication system built with FastAPI, featuring JWT-based authentic
   - [🔐 Security Features](#-security-features)
     - [✅ Implemented](#-implemented)
     - [🔜 Planned](#-planned)
-  - [🌐 Frontend (Coming Soon)](#-frontend-coming-soon)
+  - [🌐 Frontend](#-frontend)
   - [🙌 Acknowledgments](#-acknowledgments)
 
 ---
@@ -85,7 +85,7 @@ cd fastapi-auth-app
 ```bash
 # Windows
 python -m venv venv
-.\venv\Scripts\activate
+.env\Scriptsctivate
 
 # Linux/macOS
 python -m venv venv
@@ -100,7 +100,7 @@ pip install -r backend/requirements.txt
 ### 4. Create a `.env` File in the Project Root
 ```env
 # JWT Settings
-JWT_SECRET=your-secret-key  # Generate a strong secret key (min 32 characters)
+JWT_SECRET=your-secret-key
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
@@ -142,51 +142,22 @@ Access the API at:
 
 ### Authentication
 - `POST /auth/register`
-```json
-{
-  "email": "user@example.com",
-  "password": "securepassword123",
-  "full_name": "John Doe"
-}
-```
-
 - `POST /auth/login`
-```json
-{
-  "email": "user@example.com",
-  "password": "securepassword123"
-}
-```
-
 - `POST /auth/verify-email`
-```json
-{
-  "email": "user@example.com",
-  "verification_code": "123456"
-}
-```
-
 - `POST /auth/resend-verification`
 - `POST /auth/refresh`
 - `POST /auth/logout`
 
 ### Protected Routes
-- `GET /user/home`  
-  Requires header:
-  ```http
-  Authorization: Bearer <your-access-token>
-  ```
-
+- `GET /user/home` – Requires `Authorization: Bearer <token>`
 - `GET /user/me`
 
 ---
 
 ## 🧪 Running Tests
 
-The script `backend/scripts/run_tests.py` wraps `pytest` and supports optional coverage and file targeting.
-
 ```bash
-# All tests
+# Run all tests
 python backend/scripts/run_tests.py
 
 # With coverage
@@ -201,25 +172,46 @@ python backend/scripts/run_tests.py -p backend/tests/test_login.py
 ## 📁 Project Structure
 
 ```
-fastapi-auth-app/
-├── backend/
-│   ├── app/
-│   │   ├── core/
-│   │   ├── dependencies/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   ├── schemas/
-│   │   ├── utils/
-│   │   └── main.py
-│   ├── scripts/
-│   ├── tests/
-│   ├── .coverage
-│   ├── pytest.ini
-│   └── requirements.txt
+📁 fastapi-auth-app/
 ├── .env
 ├── .gitignore
 ├── README.md
-├── venv/
+├── structure.txt
+├── backend/
+│   ├── .coverage
+│   ├── pytest.ini
+│   ├── requirements.txt
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── main.py
+│   │   ├── core/
+│   │   │   ├── mail_config.py
+│   │   │   └── security.py
+│   │   ├── dependencies/
+│   │   │   └── auth.py
+│   │   └── ... (routes, models, schemas, utils)
+│   ├── scripts/
+│   └── tests/
+├── frontend/
+│   ├── index.html
+│   ├── register.html
+│   ├── verify.html
+│   ├── dashboard.html
+│   ├── styles.css
+│   └── script.js
+```
+
+```
+fastapi-auth-app/
+├── backend/
+├── frontend/
+│   ├── index.html
+│   ├── register.html
+│   ├── verify.html
+│   ├── dashboard.html
+│   ├── styles.css
 ```
 
 ---
@@ -237,19 +229,34 @@ fastapi-auth-app/
 - Input validation using Pydantic  
 
 ### 🔜 Planned
-- Rate limiting (to prevent brute force)  
-- CORS protection (to limit origins)
+- Rate limiting  
+- CORS origin whitelisting
 
 ---
 
-## 🌐 Frontend (Coming Soon)
+## 🌐 Frontend
 
-A basic HTML/CSS/JS frontend will be added in the `frontend/` directory.
+A simple HTML/CSS/JS frontend is included in the `frontend/` folder.
+
+### Features
+- Login & registration
+- Email verification with resend
+- Password confirmation & live validation
+- Token-based protected dashboard
+- Responsive UI
+
+### Run the frontend
+```bash
+cd frontend
+python -m http.server 5500
+```
+
+Then open [http://localhost:5500/index.html](http://localhost:5500/index.html)
 
 ---
 
 ## 🙌 Acknowledgments
 
-- [FastAPI Documentation](https://fastapi.tiangolo.com)  
-- [SQLAlchemy Docs](https://docs.sqlalchemy.org)  
+- [FastAPI Documentation](https://fastapi.tiangolo.com)
+- [SQLAlchemy Docs](https://docs.sqlalchemy.org)
 - [Pydantic Docs](https://docs.pydantic.dev)
