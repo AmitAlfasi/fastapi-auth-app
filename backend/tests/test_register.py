@@ -1,10 +1,26 @@
+"""
+Test suite for user registration functionality.
+This module contains tests for:
+- Successful user registration
+- Registration with existing email
+- Password validation and matching
+- Password strength requirements
+"""
+
 import pytest
-from app.models.user import User
-from app.core.security import hash_password
+from backend.app.models.user import User
+from backend.app.core.security import hash_password
 from datetime import datetime, timezone
 
 def test_register_success(client):
-    """Test successful user registration"""
+    """
+    Test successful user registration with valid data.
+    
+    Verifies:
+    - Status code is 201 (Created)
+    - Response contains user_id
+    - Success message is returned
+    """
     response = client.post(
         "/auth/register",
         json={
@@ -21,7 +37,17 @@ def test_register_success(client):
     assert "registered successfully" in response.json()["message"]
 
 def test_register_existing_email(client, db_session):
-    """Test registration with existing email"""
+    """
+    Test registration attempt with an email that's already registered.
+    
+    Steps:
+    1. Create a user with test email
+    2. Attempt to register another user with same email
+    
+    Verifies:
+    - Status code is 400 (Bad Request)
+    - Error message indicates email is already registered
+    """
     # Create a user first
     existing_user = User(
         email="test@example.com",
@@ -48,7 +74,13 @@ def test_register_existing_email(client, db_session):
     assert "Email already registered" in response.json()["detail"]
 
 def test_register_password_mismatch(client):
-    """Test registration with mismatched passwords"""
+    """
+    Test registration with non-matching password and confirmation.
+    
+    Verifies:
+    - Status code is 422 (Unprocessable Entity)
+    - Error message indicates passwords don't match
+    """
     response = client.post(
         "/auth/register",
         json={
@@ -68,6 +100,17 @@ def test_register_password_mismatch(client):
     ("Test!@#", "number"),
 ])
 def test_register_weak_password(client, password, expected_error):
+    """
+    Test registration with passwords that don't meet strength requirements.
+    
+    Args:
+        password (str): Password to test
+        expected_error (str): Expected error message fragment
+        
+    Verifies:
+    - Status code is 422 (Unprocessable Entity)
+    - Error message indicates specific password requirement not met
+    """
     response = client.post(
         "/auth/register",
         json={

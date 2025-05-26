@@ -1,14 +1,30 @@
+"""
+Refresh token model module defining the database schema for refresh tokens.
+This module contains the SQLAlchemy model for storing refresh tokens used in JWT authentication.
+"""
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Integer, String, DateTime, ForeignKey, func
 from datetime import datetime, timezone
-from app.database import Base
+from backend.app.database import Base
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.models.user import User
+    from backend.app.models.user import User
 
 
 class RefreshToken(Base):
+    """
+    Refresh token model for storing JWT refresh tokens.
+    
+    Attributes:
+        id (int): Primary key and unique identifier
+        token (str): The refresh token string
+        user_id (int): Foreign key to the user who owns this token
+        created_at (datetime): Token creation timestamp
+        updated_at (datetime): Last update timestamp
+        user (User): Associated user object
+    """
     __tablename__ = "refresh_tokens"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)

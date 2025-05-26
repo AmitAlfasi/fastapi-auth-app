@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<!-- 
+    Email Verification Page
+    This page handles email verification for new and existing users.
+    Features:
+    - Verification code input form
+    - Resend verification code functionality
+    - Error handling and display
+    - Redirects to login page after successful verification
+    - Handles cases where no email is found in localStorage
+    - Displays email address where code was sent
+-->
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Account</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <h2>Email Verification</h2>
+        <p id="info-message">We've sent a verification code to your email.</p>
+        <form id="verify-form">
+            <input type="text" id="code" placeholder="Enter verification code" required />
+            <button type="submit">Verify</button>
+        </form>
+        <div id="error-message"></div>
+        <div class="button-center">
+            <button id="resend-btn">Resend Code</button>
+        </div>
+        <p><a href="index.html">Back to Login</a></p>
+    </div>
+
+    <script>
+        const email = localStorage.getItem("pending_email");
+        const infoMsg = document.getElementById("info-message");
+
+        if (!email) {
+            infoMsg.textContent = "No email found. Please register again.";
+            document.getElementById("verify-form").style.display = "none";
+            document.getElementById("resend-btn").style.display = "none";
+        } else {
+            infoMsg.textContent = `We've sent a verification code to ${email}.`;
+        }
+
+        document.getElementById("verify-form").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            document.getElementById("error-message").textContent = "";
+
+            const code = document.getElementById("code").value;
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/auth/verify-email", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, code })
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.detail || "Verification failed.");
+                }
+
+                localStorage.removeItem("pending_email");
+                alert("Verification successful! You can now log in.");
+                window.location.href = "index.html";
+
+            } catch (err) {
+                document.getElementById("error-message").textContent = err.message;
+            }
+        });
+
+        document.getElementById("resend-btn").addEventListener("click", async () => {
+            if (!email) return;
+
+            try {
+                const res = await fetch("http://127.0.0.1:8000/auth/resend-code", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email })
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.detail || "Could not resend code.");
+                }
+
+                alert("A new verification code has been sent.");
+            } catch (err) {
+                document.getElementById("error-message").textContent = err.message;
+            }
+        });
+    </script>
+</body>
+
+</html>

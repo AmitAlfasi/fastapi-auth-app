@@ -1,9 +1,26 @@
+"""
+Configuration management module for the FastAPI authentication application.
+This module handles environment variables, application settings, and configuration
+management using Pydantic settings.
+"""
+
 from pydantic_settings import BaseSettings
 from typing import Optional
 from functools import lru_cache
 from pydantic import ConfigDict
 
 class Settings(BaseSettings):
+    """
+    Application settings and configuration management.
+    
+    This class manages all application settings including:
+    - JWT authentication settings
+    - Database configuration
+    - Email service settings
+    - Security and CORS settings
+    
+    All settings can be configured through environment variables or .env file.
+    """
     # JWT Settings
     JWT_SECRET: str
     ALGORITHM: str 
@@ -11,7 +28,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int
     
     # Database Settings
-    DATABASE_URL: str = "sqlite:///./app.db"
+    DATABASE_URL: str = "sqlite:///./backend/app/app.db"
     
     # Email Settings
     SMTP_TLS: bool = True
@@ -40,4 +57,13 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
+    """
+    Get application settings with caching.
+    
+    Returns:
+        Settings: Cached instance of application settings
+        
+    Note:
+        Uses LRU cache to prevent repeated environment variable loading
+    """
     return Settings()

@@ -1,11 +1,32 @@
-from app.models.user import User
-from app.models.refresh_token import RefreshToken
-from app.core.security import hash_password, create_refresh_token
+"""
+Test suite for user logout functionality.
+This module contains tests for:
+- Successful logout with refresh token
+- Logout behavior without refresh token
+- Cookie and database cleanup after logout
+"""
+
+from backend.app.models.user import User
+from backend.app.models.refresh_token import RefreshToken
+from backend.app.core.security import hash_password, create_refresh_token
 from datetime import datetime, timezone
 from hashlib import sha256
 
 def test_logout_clears_cookie(client, db_session):
-    """Test that logout clears the refresh token cookie"""
+    """
+    Test that logout properly clears refresh token cookie and database entry.
+    
+    Steps:
+    1. Create a verified user
+    2. Generate and store refresh token
+    3. Set refresh token in client cookies
+    4. Perform logout
+    
+    Verifies:
+    - Status code is 204 (No Content)
+    - Refresh token cookie is cleared
+    - Refresh token is removed from database
+    """
     # Create a verified user
     user = User(
         email="logout@example.com",
@@ -46,7 +67,14 @@ def test_logout_clears_cookie(client, db_session):
     assert db_token is None
 
 def test_logout_with_no_cookie(client):
-    """Test that logout works even without a cookie"""
+    """
+    Test logout behavior when no refresh token cookie is present.
+    
+    Verifies:
+    - Status code is 204 (No Content)
+    - No error is raised
+    - No refresh token cookie is set
+    """
     # Attempt logout without setting any cookie
     response = client.post("/auth/logout")
     

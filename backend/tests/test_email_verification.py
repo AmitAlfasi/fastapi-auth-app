@@ -1,10 +1,31 @@
-from app.models.user import User
-from app.models.verification_code import VerificationCode
-from app.core.security import hash_password
+"""
+Test suite for email verification functionality.
+This module contains tests for:
+- Successful email verification with valid code
+- Verification attempts with invalid codes
+- Verification attempts with expired codes
+- User verification status updates
+"""
+
+from backend.app.models.user import User
+from backend.app.models.verification_code import VerificationCode
+from backend.app.core.security import hash_password
 from datetime import datetime, timezone, timedelta
 
 def test_email_verification_success(client, db_session):
-    """Test successful email verification"""
+    """
+    Test successful email verification with valid code.
+    
+    Steps:
+    1. Create an unverified user
+    2. Create a valid verification code
+    3. Submit verification request
+    
+    Verifies:
+    - Status code is 200 (OK)
+    - Success message is returned
+    - User is marked as verified in database
+    """
     # Create an unverified user
     user = User(
         email="verify@example.com",
@@ -43,7 +64,19 @@ def test_email_verification_success(client, db_session):
     assert user.is_verified == True
 
 def test_email_verification_invalid_code(client, db_session):
-    """Test email verification with invalid code"""
+    """
+    Test email verification with incorrect code.
+    
+    Steps:
+    1. Create an unverified user
+    2. Create a valid verification code
+    3. Submit verification with wrong code
+    
+    Verifies:
+    - Status code is 400 (Bad Request)
+    - Error message indicates invalid code
+    - User remains unverified
+    """
     # Create an unverified user
     user = User(
         email="verify@example.com",
@@ -82,7 +115,19 @@ def test_email_verification_invalid_code(client, db_session):
     assert user.is_verified == False
 
 def test_email_verification_expired_code(client, db_session):
-    """Test email verification with expired code"""
+    """
+    Test email verification with expired code.
+    
+    Steps:
+    1. Create an unverified user
+    2. Create an expired verification code
+    3. Submit verification request
+    
+    Verifies:
+    - Status code is 400 (Bad Request)
+    - Error message indicates invalid/expired code
+    - User remains unverified
+    """
     # Create an unverified user
     user = User(
         email="verify@example.com",

@@ -2,8 +2,8 @@ import random
 import string
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
-from app.models.verification_code import VerificationCode
-from app.models.user import User
+from backend.app.models.verification_code import VerificationCode
+from backend.app.models.user import User
 
 def generate_verification_code(length: int = 6) -> str:
     """Generate a random numeric code (default: 6-digit)."""

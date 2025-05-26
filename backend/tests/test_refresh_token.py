@@ -1,12 +1,33 @@
-from app.models.user import User
-from app.models.refresh_token import RefreshToken
-from app.core.security import hash_password, create_refresh_token
-from app.config import get_settings
+"""
+Test suite for refresh token functionality.
+This module contains tests for:
+- Successful token refresh with valid refresh token
+- Refresh attempts with invalid tokens
+- Refresh attempts with expired tokens
+"""
+
+from backend.app.models.user import User
+from backend.app.models.refresh_token import RefreshToken
+from backend.app.core.security import hash_password, create_refresh_token
+from backend.app.config import get_settings
 from datetime import datetime, timezone
 from hashlib import sha256
 
 def test_refresh_token_success(client, db_session):
-    """Test successful token refresh"""
+    """
+    Test successful access token refresh with valid refresh token.
+    
+    Steps:
+    1. Create a verified user
+    2. Generate and store refresh token
+    3. Set refresh token in client cookies
+    4. Attempt token refresh
+    
+    Verifies:
+    - Status code is 200 (OK)
+    - New access token is returned
+    - Access token is valid format
+    """
     # Create a verified user
     user = User(
         email="refresh@example.com",
@@ -43,7 +64,17 @@ def test_refresh_token_success(client, db_session):
     assert len(data["access_token"]) > 0
 
 def test_refresh_token_invalid(client):
-    """Test refresh with invalid token"""
+    """
+    Test refresh attempt with invalid refresh token.
+    
+    Steps:
+    1. Set invalid refresh token in client cookies
+    2. Attempt token refresh
+    
+    Verifies:
+    - Status code is 401 (Unauthorized)
+    - Error message indicates invalid token
+    """
     # Set invalid cookie on client
     client.cookies.set("refresh_token", "invalid.token.here")
     
@@ -53,7 +84,19 @@ def test_refresh_token_invalid(client):
     assert "Invalid refresh token" in response.json()["detail"]
 
 def test_refresh_token_expired(client, db_session):
-    """Test refresh with expired token"""
+    """
+    Test refresh attempt with expired refresh token.
+    
+    Steps:
+    1. Create a verified user
+    2. Generate and store expired refresh token
+    3. Set expired token in client cookies
+    4. Attempt token refresh
+    
+    Verifies:
+    - Status code is 401 (Unauthorized)
+    - Error message indicates invalid token
+    """
     # Create a verified user
     user = User(
         email="refresh@example.com",

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<!-- 
+    Registration Page
+    This page handles new user registration with comprehensive form validation.
+    Features:
+    - Email validation with format checking
+    - Full name validation (letters and spaces only, max 50 chars)
+    - Password strength requirements:
+        * Minimum 8 characters
+        * At least one lowercase letter
+        * At least one uppercase letter
+        * At least one number
+    - Password confirmation matching
+    - Real-time validation feedback
+    - Error handling and display
+    - Redirects to verification page upon successful registration
+    - Handles existing email cases
+-->
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <h2>Register</h2>
+        <form id="register-form">
+            <input type="email" id="email" placeholder="Email" required />
+            <small id="email-feedback" style="color: #d9534f; margin-bottom: 1rem; display: none;"></small>
+
+            <input type="text" id="full_name" placeholder="Full Name" required />
+            <small id="name-feedback" style="color: #d9534f; margin-bottom: 1rem; display: none;"></small>
+
+            <input type="password" id="password" placeholder="Password" required />
+            <small id="password-feedback" style="color: #d9534f; margin-bottom: 1rem; display: none;"></small>
+
+            <input type="password" id="confirm_password" placeholder="Confirm Password" required />
+            <small id="confirm-feedback" style="color: #d9534f; margin-bottom: 1rem; display: none;"></small>
+
+            <button type="submit">Register</button>
+        </form>
+
+        <div id="error-message" style="color: red; margin-top: 10px;"></div>
+
+        <p>Already have an account? <a href="index.html">Login</a></p>
+    </div>
+
+    <script>
+        // Email validation
+        const emailInput = document.getElementById("email");
+        const emailFeedback = document.getElementById("email-feedback");
+
+        emailInput.addEventListener("input", () => {
+            const email = emailInput.value;
+            const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+            if (email.length === 0) {
+                emailFeedback.style.display = "none";
+            } else if (!isValid) {
+                emailFeedback.textContent = "Invalid email format.";
+                emailFeedback.style.display = "block";
+            } else {
+                emailFeedback.style.display = "none";
+            }
+        });
+
+        // Full Name validation
+        const fullNameInput = document.getElementById("full_name");
+        const nameFeedback = document.getElementById("name-feedback");
+
+        fullNameInput.addEventListener("input", () => {
+            const name = fullNameInput.value;
+
+            if (name.length === 0) {
+                nameFeedback.style.display = "none";
+                return;
+            }
+
+            if (name.length > 50) {
+                nameFeedback.textContent = "Full name must not exceed 50 characters.";
+                nameFeedback.style.display = "block";
+            } else if (!/^[A-Za-z\s]+$/.test(name)) {
+                nameFeedback.textContent = "Full name must contain only letters and spaces.";
+                nameFeedback.style.display = "block";
+            } else {
+                nameFeedback.style.display = "none";
+            }
+        });
+
+        // Password strength validation
+        const passwordInput = document.getElementById("password");
+        const passwordFeedback = document.getElementById("password-feedback");
+
+        passwordInput.addEventListener("input", () => {
+            const pwd = passwordInput.value;
+
+            if (pwd.length === 0) {
+                passwordFeedback.style.display = "none";
+                return;
+            }
+
+            const issues = [];
+
+            if (pwd.length < 8) issues.push("At least 8 characters");
+            if (!/[a-z]/.test(pwd)) issues.push("One lowercase letter");
+            if (!/[A-Z]/.test(pwd)) issues.push("One uppercase letter");
+            if (!/[0-9]/.test(pwd)) issues.push("One number");
+
+            if (issues.length > 0) {
+                passwordFeedback.innerHTML = "Password must include:<br>• " + issues.join("<br>• ");
+                passwordFeedback.style.display = "block";
+            } else {
+                passwordFeedback.style.display = "none";
+            }
+        });
+
+
+        // Confirm Password live match
+        const confirmInput = document.getElementById("confirm_password");
+        const confirmFeedback = document.getElementById("confirm-feedback");
+
+        confirmInput.addEventListener("input", () => {
+            const password = passwordInput.value;
+            const confirm = confirmInput.value;
+
+            if (confirm.length === 0) {
+                confirmFeedback.style.display = "none";
+                return;
+            }
+
+            if (confirm !== password) {
+                confirmFeedback.textContent = "Passwords do not match.";
+                confirmFeedback.style.display = "block";
+            } else {
+                confirmFeedback.style.display = "none";
+            }
+        });
+
+        // Registration submit handler
+        document.getElementById("register-form").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const email = emailInput.value;
+            const full_name = fullNameInput.value;
+            const password = passwordInput.value;
+            const confirm = document.getElementById("confirm_password").value;
+
+            const errorBox = document.getElementById("error-message");
+            errorBox.innerHTML = "";
+
+            if (password !== confirm) {
+                errorBox.textContent = "Passwords do not match.";
+                return;
+            }
+
+            try {
+                const res = await fetch("http://127.0.0.1:8000/auth/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, full_name, password, confirm_password: confirm })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    if (data.detail === "Email already registered") {
+                        localStorage.setItem("pending_email", email);
+                        alert("Email already registered. Please log in.");
+                        window.location.href = "index.html";
+                        return;
+                    }
+
+                    if (Array.isArray(data.detail)) {
+                        const messages = data.detail.map(err => `<li>${err.msg}</li>`).join("");
+                        errorBox.innerHTML = `<ul>${messages}</ul>`;
+                        return;
+                    }
+
+                    throw new Error(data.detail || "Registration failed.");
+                }
+
+                localStorage.setItem("pending_email", email);
+                alert(data.message);
+                window.location.href = "verify.html";
+
+            } catch (err) {
+                errorBox.textContent = err.message;
+            }
+        });
+    </script>
+</body>
+
+</html>

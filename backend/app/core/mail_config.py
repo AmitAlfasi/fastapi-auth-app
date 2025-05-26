@@ -1,3 +1,8 @@
+"""
+Email configuration and utility module for handling email operations.
+This module provides functionality for configuring and sending emails using FastAPI-Mail.
+"""
+
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from pydantic import EmailStr, SecretStr, BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
@@ -6,6 +11,9 @@ from functools import lru_cache
 
 # Load email-related environment variables
 class MailSettings(BaseSettings):
+    """
+    Email configuration settings loaded from environment variables.
+    """
     MAIL_USERNAME: str
     MAIL_PASSWORD: SecretStr
     MAIL_FROM: EmailStr
@@ -24,6 +32,12 @@ class MailSettings(BaseSettings):
 
 @lru_cache()
 def get_mail_settings() -> MailSettings:
+    """
+    Get cached mail settings instance.
+    
+    Returns:
+        MailSettings: Cached instance of mail settings
+    """
     return MailSettings()
 
 
@@ -45,6 +59,16 @@ conf = ConnectionConfig(
 
 # Send verification email
 async def send_verification_email(email: EmailStr, code: str):
+    """
+    Send a verification code email to the specified address.
+    
+    Args:
+        email (EmailStr): Recipient email address
+        code (str): Verification code to send
+        
+    Note:
+        This is an async function and should be awaited when called.
+    """
     message = MessageSchema(
         subject="Your Verification Code",
         recipients=[email],

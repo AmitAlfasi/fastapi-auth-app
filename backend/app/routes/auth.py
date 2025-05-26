@@ -1,17 +1,22 @@
+"""
+Authentication routes module for handling user authentication operations.
+This module provides endpoints for user registration, email verification, login, token refresh, and logout.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
 from sqlalchemy.orm import Session
-from app.schemas.user import UserCreate
-from app.models.user import User
-from app.database import get_db
-from app.core.security import hash_password
-from app.utils.email_verification import create_and_store_verification_code
-from app.core.mail_config import send_verification_email
-from app.schemas.auth import ResendVerificationCodeRequest, VerifyEmailRequest, LoginRequest
+from backend.app.schemas.user import UserCreate
+from backend.app.models.user import User
+from backend.app.database import get_db
+from backend.app.core.security import hash_password
+from backend.app.utils.email_verification import create_and_store_verification_code
+from backend.app.core.mail_config import send_verification_email
+from backend.app.schemas.auth import ResendVerificationCodeRequest, VerifyEmailRequest, LoginRequest
 from datetime import datetime, timezone
-from app.models.verification_code import VerificationCode
-from app.models.refresh_token import RefreshToken
-from app.core.security import verify_password, create_access_token, create_refresh_token
-from app.config import get_settings
+from backend.app.models.verification_code import VerificationCode
+from backend.app.models.refresh_token import RefreshToken
+from backend.app.core.security import verify_password, create_access_token, create_refresh_token
+from backend.app.config import get_settings
 from hashlib import sha256
 from jose import jwt, JWTError
 from typing import Optional
@@ -20,6 +25,19 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", status_code=201)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
+    """
+    Register a new user and send verification email.
+    
+    Args:
+        user_data (UserCreate): User registration data
+        db (Session): Database session
+        
+    Returns:
+        dict: Registration success message and user ID
+        
+    Raises:
+        HTTPException: If email is already registered
+    """
     existing_user = db.query(User).filter(User.email == user_data.email).first()
 
     if existing_user:
@@ -50,6 +68,16 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @router.get("/test-send-email/{user_id}")
 async def test_send_email(user_id: int, db: Session = Depends(get_db)):
+    """
+    Test endpoint for sending verification emails.
+    
+    Args:
+        user_id (int): ID of the user to send email to
+        db (Session): Database session
+        
+    Returns:
+        dict: Success message with email address
+    """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         return {"error": "User not found"}
@@ -65,6 +93,19 @@ async def resend_verification_code(
     payload: ResendVerificationCodeRequest,
     db: Session = Depends(get_db)
 ):
+    """
+    Resend verification code to user's email.
+    
+    Args:
+        payload (ResendVerificationCodeRequest): Email address to resend code to
+        db (Session): Database session
+        
+    Returns:
+        dict: Success message
+        
+    Raises:
+        HTTPException: If user not found or already verified
+    """
     user = db.query(User).filter(User.email == payload.email).first()
 
     if not user:
@@ -81,6 +122,19 @@ async def resend_verification_code(
 
 @router.post("/verify-email")
 def verify_email(payload: VerifyEmailRequest, db: Session = Depends(get_db)):
+    """
+    Verify user's email using verification code.
+    
+    Args:
+        payload (VerifyEmailRequest): Email and verification code
+        db (Session): Database session
+        
+    Returns:
+        dict: Success message
+        
+    Raises:
+        HTTPException: If user not found, already verified, or code invalid/expired
+    """
     user = db.query(User).filter(User.email == payload.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -113,9 +167,22 @@ def verify_email(payload: VerifyEmailRequest, db: Session = Depends(get_db)):
     return {"message": "Email verified successfully"}
 
 
-
 @router.post("/login")
 def login(data: LoginRequest, response: Response, db: Session = Depends(get_db)):
+    """
+    Authenticate user and generate access/refresh tokens.
+    
+    Args:
+        data (LoginRequest): Login credentials
+        response (Response): FastAPI response object for setting cookies
+        db (Session): Database session
+        
+    Returns:
+        dict: Access token and token type
+        
+    Raises:
+        HTTPException: If credentials invalid or email not verified
+    """
     settings = get_settings()
 
     user = db.query(User).filter(User.email == data.email).first()
@@ -165,6 +232,20 @@ def refresh_token(
     refresh_token: str = Cookie(None),
     db: Session = Depends(get_db)
 ):
+    """
+    Refresh access token using refresh token.
+    
+    Args:
+        response (Response): FastAPI response object for setting cookies
+        refresh_token (str): Refresh token from cookie
+        db (Session): Database session
+        
+    Returns:
+        dict: New access token and token type
+        
+    Raises:
+        HTTPException: If refresh token missing, invalid, or not recognized
+    """
     settings = get_settings()
 
     if refresh_token is None:
@@ -219,13 +300,23 @@ def refresh_token(
     return {"access_token": new_access_token, "token_type": "bearer"}
 
 
-
 @router.post("/logout", status_code=204)
 def logout(
     response: Response,
     db: Session = Depends(get_db),
     refresh_token: str = Cookie(None)
 ):
+    """
+    Logout user by invalidating refresh token.
+    
+    Args:
+        response (Response): FastAPI response object for clearing cookies
+        db (Session): Database session
+        refresh_token (str): Refresh token from cookie
+        
+    Returns:
+        None: 204 No Content response
+    """
     if refresh_token:
         # Hash the token to find it in DB
         hashed_token = sha256(refresh_token.encode()).hexdigest()

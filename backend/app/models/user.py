@@ -1,13 +1,32 @@
+"""
+User model module defining the database schema for user accounts.
+This module contains the SQLAlchemy model for user data and its relationships.
+"""
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, DateTime
 from datetime import datetime, timezone
-from app.database import Base
+from backend.app.database import Base
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from app.models.refresh_token import RefreshToken
-    from app.models.verification_code import VerificationCode
+    from backend.app.models.refresh_token import RefreshToken
+    from backend.app.models.verification_code import VerificationCode
 
 class User(Base):
+    """
+    User model representing a user account in the system.
+    
+    Attributes:
+        id (int): Primary key and unique identifier
+        email (str): User's email address (unique)
+        hashed_password (str): Securely hashed password
+        full_name (str | None): User's full name (optional)
+        is_verified (bool): Whether the user's email is verified
+        created_at (datetime): Account creation timestamp
+        updated_at (datetime): Last update timestamp
+        refresh_tokens (list[RefreshToken]): Associated refresh tokens
+        verification_codes (list[VerificationCode]): Associated verification codes
+    """
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
