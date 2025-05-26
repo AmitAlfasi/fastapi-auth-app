@@ -218,9 +218,26 @@ python backend/scripts/run_tests.py -p backend/tests/test_login.py
 - Strong password validation  
 - Input validation using Pydantic  
 
-### 🔜 Planned
-- Rate limiting
+### 🔜 Planned Features
+#### Security Enhancements
+- Rate limiting to protect against brute-force attacks
+- CORS origin restriction (beyond `localhost`)
+- Password reset flow (`Forgot Password`)
+- Enforce HTTPS (production-ready)
+-  Add CSRF protection (if applicable)
 
+#### User Management
+- “Remember Me” checkbox in login
+- User profile page
+- Edit user profile information
+- Track user actions for history/logging
+
+#### Infrastructure & Monitoring
+- Add logging for backend events and errors
+- Write unit and integration tests for new features
+
+#### UI/UX Improvements
+- Replace `alert()` with toast notifications or alert banners
 ---
 
 ## 🌐 Frontend
