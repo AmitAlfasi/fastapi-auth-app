@@ -31,6 +31,8 @@ A robust authentication system built with FastAPI, featuring JWT-based authentic
     - [✅ Implemented](#-implemented)
     - [🔜 Planned](#-planned)
   - [🌐 Frontend](#-frontend)
+    - [Features](#features)
+    - [Run the frontend](#run-the-frontend)
   - [🙌 Acknowledgments](#-acknowledgments)
 
 ---
@@ -230,7 +232,6 @@ fastapi-auth-app/
 
 ### 🔜 Planned
 - Rate limiting  
-- CORS origin whitelisting
 
 ---
 
