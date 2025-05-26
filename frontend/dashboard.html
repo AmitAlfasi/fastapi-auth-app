@@ -26,31 +26,18 @@
         </div>
     </div>
 
+    <script src="script.js"></script>
     <script>
         async function fetchUserHome() {
-            const token = localStorage.getItem("access_token");
-            if (!token) {
-                window.location.href = "index.html";
+            const response = await fetchWithAuth("http://127.0.0.1:8000/user/home");
+
+            if (!response || !response.ok) {
+                console.error("Unable to fetch user data");
                 return;
             }
 
-            try {
-                const response = await fetch("http://127.0.0.1:8000/user/home", {
-                    headers: {
-                        "Authorization": `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error("Unauthorized");
-                }
-
-                const data = await response.json();
-                document.getElementById("welcome-message").textContent = data.message;
-            } catch (err) {
-                console.error(err);
-                window.location.href = "index.html";
-            }
+            const data = await response.json();
+            document.getElementById("welcome-message").textContent = data.message;
         }
 
         function logout() {
@@ -58,9 +45,9 @@
             window.location.href = "index.html";
         }
 
-        // Load data on page load
         fetchUserHome();
     </script>
+
 </body>
 
 </html>

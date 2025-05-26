@@ -8,17 +8,21 @@ from sqlalchemy.orm import Session
 from backend.app.schemas.user import UserCreate
 from backend.app.models.user import User
 from backend.app.database import get_db
-from backend.app.core.security import hash_password
+from backend.app.core.security import (
+    hash_password, 
+    verify_password, 
+    create_access_token, 
+    create_refresh_token,
+    verify_token
+)
 from backend.app.utils.email_verification import create_and_store_verification_code
 from backend.app.core.mail_config import send_verification_email
 from backend.app.schemas.auth import ResendVerificationCodeRequest, VerifyEmailRequest, LoginRequest
 from datetime import datetime, timezone
 from backend.app.models.verification_code import VerificationCode
 from backend.app.models.refresh_token import RefreshToken
-from backend.app.core.security import verify_password, create_access_token, create_refresh_token
 from backend.app.config import get_settings
 from hashlib import sha256
-from jose import jwt, JWTError
 from typing import Optional
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -218,9 +222,11 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,  # TODO Set to True ?
-        samesite="strict",
-        max_age=60 * 60 * 24 * settings.REFRESH_TOKEN_EXPIRE_DAYS
+        secure=False,  # Keep false for local development
+        samesite="lax",
+        max_age=60 * 60 * 24 * settings.REFRESH_TOKEN_EXPIRE_DAYS,
+        path="/",  # ensures cookie is available across all paths
+        domain=None  # allows cookie to work on localhost
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
@@ -251,18 +257,14 @@ def refresh_token(
     if refresh_token is None:
         raise HTTPException(status_code=401, detail="Missing refresh token")
 
-    # Decode and validate the JWT refresh token
-    try:
-        payload = jwt.decode(
-            refresh_token,
-            settings.JWT_SECRET,
-            algorithms=[settings.ALGORITHM]
-        )
-        user_id: Optional[str] = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token payload")
-    except JWTError:
+    # Use verify_token instead of direct jwt.decode
+    payload = verify_token(refresh_token)
+    if not payload:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    user_id: Optional[str] = payload.get("sub")
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Invalid token payload")
 
     # Hash the token and look it up in DB
     hashed_token = sha256(refresh_token.encode()).hexdigest()
@@ -293,7 +295,7 @@ def refresh_token(
         value=new_refresh_token,
         httponly=True,
         secure=False,  # TODO Set to True in production
-        samesite="strict",
+        samesite="lax",
         max_age=60 * 60 * 24 * settings.REFRESH_TOKEN_EXPIRE_DAYS
     )
 

@@ -5,11 +5,10 @@ This module provides dependency functions for handling JWT token authentication 
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from backend.app.models.user import User
 from backend.app.database import get_db
-from backend.app.config import get_settings
+from backend.app.core.security import verify_token
 
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -31,19 +30,18 @@ def get_current_user(
     Raises:
         HTTPException: If the token is invalid or the user is not found
     """
-    settings = get_settings()
-
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials"
     )
 
-    try:
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM])
-        user_id: str | None = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
+    # Use verify_token instead of direct jwt.decode
+    payload = verify_token(token)
+    if not payload:
+        raise credentials_exception
+
+    user_id: str | None = payload.get("sub")
+    if user_id is None:
         raise credentials_exception
 
     user = db.query(User).filter(User.id == int(user_id)).first()
