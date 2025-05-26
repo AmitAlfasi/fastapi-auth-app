@@ -15,7 +15,6 @@ from app.config import get_settings
 from hashlib import sha256
 from jose import jwt, JWTError
 from typing import Optional
-from fastapi import Request
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -221,24 +220,19 @@ def refresh_token(
 
 
 
-@router.post("/logout")
+@router.post("/logout", status_code=204)
 def logout(
-    # request: Request,
     response: Response,
     db: Session = Depends(get_db),
     refresh_token: str = Cookie(None)
 ):
-    if refresh_token is None:
-        raise HTTPException(status_code=400, detail="No refresh token found")
+    if refresh_token:
+        # Hash the token to find it in DB
+        hashed_token = sha256(refresh_token.encode()).hexdigest()
 
-    # Hash the token to find it  DB
-    hashed_token = sha256(refresh_token.encode()).hexdigest()
+        # Delete the refresh token from the DB
+        db.query(RefreshToken).filter(RefreshToken.token == hashed_token).delete()
+        db.commit()
 
-    # Delete the refresh token from the DB
-    db.query(RefreshToken).filter(RefreshToken.token == hashed_token).delete()
-    db.commit()
-
-    # Clear the cookie
+    # Clear the cookie regardless of whether there was a token
     response.delete_cookie("refresh_token")
-
-    return {"message": "Logged out successfully"}
