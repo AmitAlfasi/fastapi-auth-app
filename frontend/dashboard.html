@@ -26,13 +26,17 @@
         </div>
     </div>
 
+    <!-- Load shared base URL and helpers -->
     <script src="script.js"></script>
+
     <script>
+        // Fetch user's home data from protected route
         async function fetchUserHome() {
-            const response = await fetchWithAuth("http://127.0.0.1:8000/user/home");
+            const response = await fetchWithAuth(`${API_BASE_URL}/user/home`);
 
             if (!response || !response.ok) {
-                console.error("Unable to fetch user data");
+                // If unauthorized or fetch fails, redirect to login
+                window.location.href = "index.html";
                 return;
             }
 
@@ -40,14 +44,24 @@
             document.getElementById("welcome-message").textContent = data.message;
         }
 
-        function logout() {
-            localStorage.removeItem("access_token");
-            window.location.href = "index.html";
+        // Clear localStorage and redirect to login
+        async function logout() {
+            try {
+                await fetch(`${API_BASE_URL}/auth/logout`, {
+                    method: "POST",
+                    credentials: "include",  // sends the refresh_token cookie
+                });
+            } catch (err) {
+                console.warn("Logout request failed:", err);
+            } finally {
+                localStorage.removeItem("access_token");
+                localStorage.removeItem("pending_email");
+                window.location.href = "index.html";
+            }
         }
 
         fetchUserHome();
     </script>
-
 </body>
 
 </html>
