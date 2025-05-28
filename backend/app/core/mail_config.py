@@ -4,7 +4,7 @@ This module provides functionality for configuring and sending emails using Fast
 """
 
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
-from pydantic import EmailStr, SecretStr, BaseModel, ConfigDict
+from pydantic import EmailStr, SecretStr
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -24,10 +24,10 @@ class MailSettings(BaseSettings):
     USE_CREDENTIALS: bool = True
     VALIDATE_CERTS: bool = True
 
-    model_config = ConfigDict(
-        env_file=".env",
-        extra="ignore"
-    )
+    model_config = {
+        "env_file": ".env",
+        "extra": "ignore"
+    }
 
 
 @lru_cache()
@@ -38,7 +38,7 @@ def get_mail_settings() -> MailSettings:
     Returns:
         MailSettings: Cached instance of mail settings
     """
-    return MailSettings()
+    return MailSettings() # type: ignore
 
 
 # Use the config to build FastMail connection

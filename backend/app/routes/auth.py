@@ -3,27 +3,27 @@ Authentication routes module for handling user authentication operations.
 This module provides endpoints for user registration, email verification, login, token refresh, and logout.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
-from sqlalchemy.orm import Session
-from backend.app.schemas.user import UserCreate
-from backend.app.models.user import User
-from backend.app.database import get_db
-from backend.app.core.security import (
-    hash_password, 
-    verify_password, 
-    create_access_token, 
-    create_refresh_token,
-    verify_token
-)
-from backend.app.utils.email_verification import create_and_store_verification_code
-from backend.app.core.mail_config import send_verification_email
-from backend.app.schemas.auth import ResendVerificationCodeRequest, VerifyEmailRequest, LoginRequest
+# Standard library
 from datetime import datetime, timezone
-from backend.app.models.verification_code import VerificationCode
-from backend.app.models.refresh_token import RefreshToken
-from backend.app.config import get_settings
 from hashlib import sha256
 from typing import Optional
+
+# Third-party
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
+from sqlalchemy.orm import Session
+
+# Internal: app-specific modules
+from backend.app.database import get_db
+from backend.app.config import get_settings
+from backend.app.models.user import User
+from backend.app.models.verification_code import VerificationCode
+from backend.app.models.refresh_token import RefreshToken
+from backend.app.schemas.user import UserCreate
+from backend.app.schemas.auth import ResendVerificationCodeRequest, VerifyEmailRequest, LoginRequest
+from backend.app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, verify_token
+from backend.app.core.mail_config import send_verification_email
+from backend.app.utils.email_verification import create_and_store_verification_code
+
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -61,7 +61,8 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
 
     # Send verification email
-    code = create_and_store_verification_code(new_user.id, db)
+    settings = get_settings()
+    code = create_and_store_verification_code(new_user.id, db, settings.VERIFICATION_CODE_EXPIRE_MINUTES)
     await send_verification_email(new_user.email, code)
 
     return {
@@ -70,33 +71,8 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/test-send-email/{user_id}")
-async def test_send_email(user_id: int, db: Session = Depends(get_db)):
-    """
-    Test endpoint for sending verification emails.
-    
-    Args:
-        user_id (int): ID of the user to send email to
-        db (Session): Database session
-        
-    Returns:
-        dict: Success message with email address
-    """
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        return {"error": "User not found"}
-
-    code = create_and_store_verification_code(user.id, db)
-    await send_verification_email(user.email, code)
-
-    return {"message": f"Verification code sent to {user.email}"}
-
-
 @router.post("/resend-code")
-async def resend_verification_code(
-    payload: ResendVerificationCodeRequest,
-    db: Session = Depends(get_db)
-):
+async def resend_verification_code(payload: ResendVerificationCodeRequest, db: Session = Depends(get_db)):
     """
     Resend verification code to user's email.
     
@@ -117,8 +93,10 @@ async def resend_verification_code(
 
     if user.is_verified:
         raise HTTPException(status_code=400, detail="User is already verified")
+    
+    settings = get_settings()
 
-    code = create_and_store_verification_code(user.id, db)
+    code = create_and_store_verification_code(user.id, db, settings.VERIFICATION_CODE_EXPIRE_MINUTES)
     await send_verification_email(user.email, code)
 
     return {"message": "A new verification code has been sent to your email"}
@@ -222,7 +200,7 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,  # Keep false for local development
+        secure=False,  # TODO Set to True in production
         samesite="lax",
         max_age=60 * 60 * 24 * settings.REFRESH_TOKEN_EXPIRE_DAYS,
         path="/",  # ensures cookie is available across all paths
@@ -233,11 +211,7 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
 
 
 @router.post("/refresh")
-def refresh_token(
-    response: Response,
-    refresh_token: str = Cookie(None),
-    db: Session = Depends(get_db)
-):
+def refresh_token(response: Response, refresh_token: Optional[str] = Cookie(None), db: Session = Depends(get_db)):
     """
     Refresh access token using refresh token.
     
@@ -303,11 +277,7 @@ def refresh_token(
 
 
 @router.post("/logout", status_code=204)
-def logout(
-    response: Response,
-    db: Session = Depends(get_db),
-    refresh_token: str = Cookie(None)
-):
+def logout(response: Response, db: Session = Depends(get_db), refresh_token: str = Cookie(None)):
     """
     Logout user by invalidating refresh token.
     

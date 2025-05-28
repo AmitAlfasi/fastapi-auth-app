@@ -5,12 +5,12 @@ from sqlalchemy.orm import Session
 from backend.app.models.verification_code import VerificationCode
 from backend.app.models.user import User
 
-def generate_verification_code(length: int = 6) -> str:
+def _generate_verification_code(length: int = 6) -> str:
     """Generate a random numeric code (default: 6-digit)."""
     return ''.join(random.choices(string.digits, k=length))
 
 
-def create_and_store_verification_code(user_id: int, db: Session, expires_in_minutes: int = 15) -> str:
+def create_and_store_verification_code(user_id: int, db: Session, expires_in_minutes: int = 10) -> str:
     
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
@@ -26,7 +26,7 @@ def create_and_store_verification_code(user_id: int, db: Session, expires_in_min
     ).update({VerificationCode.is_used: True})
     
     # Generate and save a new code
-    code = generate_verification_code()
+    code = _generate_verification_code()
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=expires_in_minutes)
 
     verification = VerificationCode(

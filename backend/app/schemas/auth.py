@@ -24,7 +24,7 @@ class VerifyEmailRequest(BaseModel):
         code (str): 6-digit verification code
     """
     email: EmailStr
-    code: Annotated[str, Field(min_length=6, max_length=6, examples=["123456"])]
+    code: Annotated[str, Field(min_length=6, max_length=6, pattern=r"^\d{6}$", examples=["123456"])]
 
 class LoginRequest(BaseModel):
     """

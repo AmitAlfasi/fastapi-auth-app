@@ -4,7 +4,7 @@ This module contains the SQLAlchemy model for storing refresh tokens used in JWT
 """
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, String, DateTime, ForeignKey, func
+from sqlalchemy import String, DateTime, ForeignKey
 from datetime import datetime, timezone
 from backend.app.database import Base
 from typing import TYPE_CHECKING

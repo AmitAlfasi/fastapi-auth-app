@@ -6,20 +6,23 @@ sets up routes, and handles database initialization.
 
 from fastapi import FastAPI
 from backend.app.database import Base, engine
-from backend.app.models import user, refresh_token, verification_code
+from backend.app.models import user
 from backend.app.routes import auth, user
-from dotenv import load_dotenv
 from backend.app.utils.openapi import custom_openapi 
 from fastapi.middleware.cors import CORSMiddleware
 
+from dotenv import load_dotenv
 load_dotenv()
+
+from backend.app.config import get_settings
+settings = get_settings()
 
 app = FastAPI()
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5500", "http://127.0.0.1:5500", "http://localhost:8000", "http://127.0.0.1:8000"], 
+    allow_origins=settings.BACKEND_CORS_ORIGINS, 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -97,7 +97,10 @@ def test_register_password_mismatch(client):
 @pytest.mark.parametrize("password, expected_error", [
     ("test123!@#", "uppercase letter"),
     ("TEST123!@#", "lowercase letter"),
-    ("Test!@#", "number"),
+    ("Test!@#$", "number"),
+    ("Test", "8"),
+    (123, "string")
+
 ])
 def test_register_weak_password(client, password, expected_error):
     """
