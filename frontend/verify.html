@@ -22,74 +22,107 @@
     <div class="container">
         <h2>Email Verification</h2>
         <p id="info-message">We've sent a verification code to your email.</p>
+
         <form id="verify-form">
             <input type="text" id="code" placeholder="Enter verification code" required />
-            <button type="submit">Verify</button>
+            <button type="submit" id="verify-btn">Verify</button>
         </form>
-        <div id="error-message"></div>
+
+        <div id="error-message" style="margin-top: 10px;"></div>
+
         <div class="button-center">
             <button id="resend-btn">Resend Code</button>
         </div>
+
         <p><a href="index.html">Back to Login</a></p>
     </div>
 
+    <!-- Load shared JS first -->
+    <script src="script.js"></script>
+
     <script>
+        // Get saved email and important elements
         const email = localStorage.getItem("pending_email");
         const infoMsg = document.getElementById("info-message");
+        const errorBox = document.getElementById("error-message");
+        const verifyForm = document.getElementById("verify-form");
+        const codeInput = document.getElementById("code");
+        const resendBtn = document.getElementById("resend-btn");
+        const verifyBtn = document.getElementById("verify-btn");
 
+        // Handle case where no email is available
         if (!email) {
             infoMsg.textContent = "No email found. Please register again.";
-            document.getElementById("verify-form").style.display = "none";
-            document.getElementById("resend-btn").style.display = "none";
+            verifyForm.style.display = "none";
+            resendBtn.style.display = "none";
         } else {
             infoMsg.textContent = `We've sent a verification code to ${email}.`;
         }
 
-        document.getElementById("verify-form").addEventListener("submit", async function (e) {
+        // Submit verification code
+        verifyForm.addEventListener("submit", async function (e) {
             e.preventDefault();
-            document.getElementById("error-message").textContent = "";
+            errorBox.textContent = "";
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = "Verifying...";
 
-            const code = document.getElementById("code").value;
+            const code = codeInput.value;
 
             try {
-                const response = await fetch("http://127.0.0.1:8000/auth/verify-email", {
+                const response = await fetch(`${API_BASE_URL}/auth/verify-email`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ email, code })
                 });
 
+                const data = await response.json();
+
                 if (!response.ok) {
-                    const data = await response.json();
                     throw new Error(data.detail || "Verification failed.");
                 }
 
                 localStorage.removeItem("pending_email");
-                alert("Verification successful! You can now log in.");
-                window.location.href = "index.html";
+                infoMsg.style.color = "green";
+                infoMsg.textContent = "Verification successful! Redirecting to login...";
+                setTimeout(() => window.location.href = "index.html", 1500);
 
             } catch (err) {
-                document.getElementById("error-message").textContent = err.message;
+                errorBox.style.color = "#d9534f";
+                errorBox.textContent = err.message;
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = "Verify";
             }
         });
 
-        document.getElementById("resend-btn").addEventListener("click", async () => {
+        // Resend verification code
+        resendBtn.addEventListener("click", async () => {
             if (!email) return;
 
+            errorBox.textContent = "";
+            resendBtn.disabled = true;
+            resendBtn.textContent = "Resending...";
+
             try {
-                const res = await fetch("http://127.0.0.1:8000/auth/resend-code", {
+                const response = await fetch(`${API_BASE_URL}/auth/resend-code`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ email })
                 });
 
-                if (!res.ok) {
-                    const data = await res.json();
+                const data = await response.json();
+
+                if (!response.ok) {
                     throw new Error(data.detail || "Could not resend code.");
                 }
 
                 alert("A new verification code has been sent.");
             } catch (err) {
-                document.getElementById("error-message").textContent = err.message;
+                errorBox.style.color = "#d9534f";
+                errorBox.textContent = err.message;
+            } finally {
+                resendBtn.disabled = false;
+                resendBtn.textContent = "Resend Code";
             }
         });
     </script>
